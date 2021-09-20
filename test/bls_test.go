@@ -22,6 +22,8 @@ var (
 )
 
 func TestPrecompiled_VerifySignatureInSolidity(t *testing.T) {
+	log.Println("Aggregated public key", publicKey.String())
+	log.Println("Aggregated signature", signature.String())
 	_, err := blsSignatureTest.VerifySignature(owner, pubBytes, message, sigBytes)
 	require.NoError(t, err)
 	backend.Commit()
@@ -44,6 +46,18 @@ func TestPrecompiled_VerifyAggregatedSignatureInSolidity(t *testing.T) {
 	backend.Commit()
 	verifiedSol, err := blsSignatureTest.Verified(&bind.CallOpts{})
 	require.True(t, verifiedSol)
+}
+
+func TestPrecompiled_AddInSolidity(t *testing.T) {
+	k1 := new(big.Int).SetBytes(GenRandomBytes(64))
+	p1 := new(bn256.G1).ScalarBaseMult(k1)
+	k2 := new(big.Int).SetBytes(GenRandomBytes(64))
+	p2 := new(bn256.G1).ScalarBaseMult(k2)
+	dataBytes, err := blsSignatureTest.TestAdditionOnCurveE1(&bind.CallOpts{}, p1.Marshal(), p2.Marshal())
+	require.NoError(t, err)
+
+	res := new(bn256.G1).Add(p2, p1)
+	require.Equal(t, 0, bytes.Compare(dataBytes, res.Marshal()))
 }
 
 func TestPrecompiled_VerifyPreparedBytes(t *testing.T) {

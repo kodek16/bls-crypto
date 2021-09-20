@@ -24,15 +24,22 @@ contract BlsSignatureTest is BlsSignatureVerification {
         bytes calldata _publicKey,  // an E2 point
         bytes calldata _message,
         bytes calldata _signature   // an E1 point
-    ) external  {
+    ) external {
         E2Point memory pub = decodePublicKey(_publicKey);
         E1Point memory sig = decodeSignature(_signature);
         verified = verify(pub, _message, sig);
     }
 
-
     function verifyBytes(bytes memory input) external {
         verified = pairingPreparedBytes(input);
+    }
+
+    function testAdditionOnCurveE1(
+        bytes calldata _p1,
+        bytes calldata _p2
+    ) external view returns (bytes memory) {
+        E1Point memory res = addCurveE1(decodeSignature(_p1), decodeSignature(_p2));
+        return abi.encode(res.x, res.y);
     }
 
     function decodePublicKey(bytes memory _pubKey) private pure returns (E2Point memory pubKey) {
@@ -68,7 +75,6 @@ contract BlsSignatureTest is BlsSignatureVerification {
         return getBytesFromParams(pub, _message, sig);
     }
 
-
     function getUintsFromParams(
         bytes calldata _publicKey,  // an E2 point
         bytes calldata _message,
@@ -78,8 +84,5 @@ contract BlsSignatureTest is BlsSignatureVerification {
         E1Point memory sig = decodeSignature(_signature);
         return getUintsFromParams(pub, _message, sig);
     }
-
-
-
 }
 

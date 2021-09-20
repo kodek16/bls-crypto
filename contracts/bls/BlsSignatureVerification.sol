@@ -265,8 +265,8 @@ contract BlsSignatureVerification {
      * G1.
      */
     function hashToCurveE1(bytes memory m)
-    internal
-    view returns(E1Point memory)
+        internal
+        view returns(E1Point memory)
     {
         bytes32 h = sha256(m);
         uint256 x = uint256(h) % p;
@@ -282,19 +282,30 @@ contract BlsSignatureVerification {
     }
 
     /**
- * @dev g1YFromX computes a Y value for a G1 point based on an X value.
- * This computation is simply evaluating the curve equation for Y on a
- * given X, and allows a point on the curve to be represented by just
- * an X value + a sign bit.
- */
+     * @dev g1YFromX computes a Y value for a G1 point based on an X value.
+     * This computation is simply evaluating the curve equation for Y on a
+     * given X, and allows a point on the curve to be represented by just
+     * an X value + a sign bit.
+     */
     function YFromX(uint256 x)
-    internal
-    view returns(uint256)
+        internal
+        view returns(uint256)
     {
         return ((x.modExp(3, p) + 3) % p).modSqrt(p);
     }
 
 
+    /// @dev return the sum of two points of G1
+    function addCurveE1(E1Point memory _p1, E1Point memory _p2) internal view returns (E1Point memory res) {
+        uint[4] memory input;
+        input[0] = _p1.x;
+        input[1] = _p1.y;
+        input[2] = _p2.x;
+        input[3] = _p2.y;
+        bool success;
+        assembly {
+            success := staticcall(sub(gas(), 2000), 6, input, 0xc0, res, 0x60)
+        }
+        require(success, "Add points failed");
+    }
 }
-
-
