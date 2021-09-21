@@ -63,6 +63,20 @@ contract BlsSignatureVerification {
         return pairing(e1points, e2points);
     }
 
+    function verifyPoint(
+        E2Point memory _publicKey,
+        E1Point memory _message,
+        E1Point memory _signature
+    ) internal view returns (bool) {
+        E1Point[] memory e1points = new E1Point[](2);
+        E2Point[] memory e2points = new E2Point[](2);
+        e1points[0] = negate(_signature);
+        e1points[1] = _message;
+        e2points[0] = G2();
+        e2points[1] = _publicKey;
+        return pairing(e1points, e2points);
+    }
+
     /**
      * Checks if a BLS aggregated signature is valid.
      *

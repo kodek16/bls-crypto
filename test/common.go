@@ -51,6 +51,18 @@ func GenRandomKeys(total int) ([]*big.Int, []*bn256.G2) {
 	return privs, pubs
 }
 
+func AggregateMembershipKeys(privs []*big.Int, pubs []*bn256.G2, aggPub *bn256.G2) []*bn256.G1 {
+	res := make([]*bn256.G1, len(pubs))
+	for i := 0; i < len(pubs); i++ {
+		res[i] = new(bn256.G1).ScalarMult(HashToPointByte(aggPub, byte(i)), privs[0])
+		for j := 1; j < len(pubs); j++ {
+			tmp := new(bn256.G1).ScalarMult(HashToPointByte(aggPub, byte(i)), privs[j])
+			res[i] = new(bn256.G1).Add(res[i], tmp)
+		}
+	}
+	return res
+}
+
 // Sign creates a point on a curve G1 by hashing and signing provided message
 // using the provided secret key.
 func Sign(secretKey *big.Int, message []byte) *bn256.G1 {

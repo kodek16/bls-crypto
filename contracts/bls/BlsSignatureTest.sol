@@ -30,6 +30,16 @@ contract BlsSignatureTest is BlsSignatureVerification {
         verified = verify(pub, _message, sig);
     }
 
+    function verifySignaturePoint(
+        bytes calldata _publicKey,  // an E2 point
+        bytes calldata _message,    // an E1 point
+        bytes calldata _signature   // an E1 point
+    ) external {
+        E2Point memory pub = decodePublicKey(_publicKey);
+        E1Point memory sig = decodeSignature(_signature);
+        verified = verifyPoint(pub, decodeSignature(_message), sig);
+    }
+
     function verifyAggregatedSignature(
         bytes calldata _aggregatedPublicKey,  // an E2 point
         bytes calldata _partPublicKey,        // an E2 point
