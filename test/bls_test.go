@@ -2,7 +2,6 @@ package test
 
 import (
 	"bytes"
-	"log"
 	"math/big"
 	"testing"
 
@@ -22,26 +21,7 @@ var (
 )
 
 func TestPrecompiled_VerifySignatureInSolidity(t *testing.T) {
-	log.Println("Aggregated public key", publicKey.String())
-	log.Println("Aggregated signature", signature.String())
 	_, err := blsSignatureTest.VerifySignature(owner, pubBytes, message, sigBytes)
-	require.NoError(t, err)
-	backend.Commit()
-	verifiedSol, err := blsSignatureTest.Verified(&bind.CallOpts{})
-	require.True(t, verifiedSol)
-}
-
-func TestPrecompiled_VerifyAggregatedSignatureInSolidity(t *testing.T) {
-	for i := 0; i < 1000; i++ {
-		secretKey2 := new(big.Int).SetBytes(GenRandomBytes(64))
-		publicKey2 := new(bn256.G2).ScalarBaseMult(secretKey2)
-		signature2 := Sign(secretKey2, message)
-		publicKey = new(bn256.G2).Add(publicKey, publicKey2)
-		signature = new(bn256.G1).Add(signature, signature2)
-	}
-	log.Println("Aggregated public key", publicKey.String())
-	log.Println("Aggregated signature", signature.String())
-	_, err := blsSignatureTest.VerifySignature(owner, publicKey.Marshal(), message, signature.Marshal())
 	require.NoError(t, err)
 	backend.Commit()
 	verifiedSol, err := blsSignatureTest.Verified(&bind.CallOpts{})
@@ -55,7 +35,6 @@ func TestPrecompiled_AddInSolidity(t *testing.T) {
 	p2 := new(bn256.G1).ScalarBaseMult(k2)
 	dataBytes, err := blsSignatureTest.TestAdditionOnCurveE1(&bind.CallOpts{}, p1.Marshal(), p2.Marshal())
 	require.NoError(t, err)
-
 	res := new(bn256.G1).Add(p2, p1)
 	require.Equal(t, 0, bytes.Compare(dataBytes, res.Marshal()))
 }

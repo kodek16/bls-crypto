@@ -64,6 +64,46 @@ contract BlsSignatureVerification {
     }
 
     /**
+     * Checks if a BLS aggregated signature is valid.
+     *
+     * @param _aggregatedPublicKey Sum of all public keys
+     * @param _partPublicKey Sum of participated public keys
+     * @param _message Message that was signed
+     * @param _partSignature Signature over the message
+     * @param _signersBitmask Bitmask of participants in this signature
+     * @return True if the message was correctly signed by the given participants.
+     */
+    function verifyAggregated(
+        E2Point memory _aggregatedPublicKey,
+        E2Point memory _partPublicKey,
+        bytes memory _message,
+        E1Point memory _partSignature,
+        uint _signersBitmask
+    ) internal view returns (bool) {
+        E1Point memory sum = E1Point(0, 0);
+        uint index = 0;
+        uint mask = 1;
+        while (_signersBitmask != 0) {
+            if (_signersBitmask & mask != 0) {
+                _signersBitmask -= mask;
+                sum = addCurveE1(sum, hashToCurveE1(abi.encodePacked(_aggregatedPublicKey.x, _aggregatedPublicKey.y, index)));
+            }
+            mask <<= 1;
+            index ++;
+        }
+
+        E1Point[] memory e1points = new E1Point[](3);
+        E2Point[] memory e2points = new E2Point[](3);
+        e1points[0] = negate(_partSignature);
+        e1points[1] = hashToCurveE1(abi.encodePacked(_aggregatedPublicKey.x, _aggregatedPublicKey.y, _message));
+        e1points[2] = sum;
+        e2points[0] = G2();
+        e2points[1] = _partPublicKey;
+        e2points[2] = _aggregatedPublicKey;
+        return pairing(e1points, e2points);
+    }
+
+    /**
      * @return The generator of E1.
      */
     function G1() private pure returns (E1Point memory) {
@@ -129,7 +169,6 @@ contract BlsSignatureVerification {
 
         uint[1] memory out;
         bool success;
-//        bytes memory i = abi.encodePacked(input);
         assembly {
             // Start at memory offset 0x20 rather than 0 as input is a variable length array.
             // Location 0 is the length field.
@@ -138,7 +177,6 @@ contract BlsSignatureVerification {
         // The pairing operation will fail if the input data isn't the correct size (this won't happen
         // given the code above), or if one of the points isn't on the curve.
         require(success, "Pairing operation failed.");
-//        require(out[0] != 0, "Pairing should return 1");
         return out[0] != 0;
     }
 
@@ -157,9 +195,6 @@ contract BlsSignatureVerification {
         //        require(out[0] != 0, "Pairing should return 1");
         return out[0] != 0;
     }
-
-
-
 
     /**
      * Multiplies a point in E1 by a scalar.

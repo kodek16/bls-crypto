@@ -30,6 +30,29 @@ contract BlsSignatureTest is BlsSignatureVerification {
         verified = verify(pub, _message, sig);
     }
 
+    function verifyAggregatedSignature(
+        bytes calldata _aggregatedPublicKey,  // an E2 point
+        bytes calldata _partPublicKey,        // an E2 point
+        bytes calldata _message,
+        bytes calldata _partSignature,        // an E1 point
+        uint _signersBitmask
+    ) external {
+        E2Point memory aPub = decodePublicKey(_aggregatedPublicKey);
+        E2Point memory pPub = decodePublicKey(_partPublicKey);
+        E1Point memory pSig = decodeSignature(_partSignature);
+        verified = verifyAggregated(aPub, pPub, _message, pSig, _signersBitmask);
+    }
+
+    function verifyAggregatedHash(
+        bytes calldata _p,
+        uint index
+    ) external view returns (bytes memory) {
+        E2Point memory pub = decodePublicKey(_p);
+        bytes memory message = abi.encodePacked(pub.x, pub.y, index);
+        E1Point memory h = hashToCurveE1(message);
+        return abi.encodePacked(h.x, h.y);
+    }
+
     function verifyBytes(bytes memory input) external {
         verified = pairingPreparedBytes(input);
     }

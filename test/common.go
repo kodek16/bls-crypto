@@ -1,11 +1,12 @@
 package test
 
 import (
-	bn256 "github.com/ethereum/go-ethereum/crypto/bn256/cloudflare"
-	"github.com/keep-network/keep-core/pkg/altbn128"
 	"math/big"
 	"math/rand"
 	"time"
+
+	bn256 "github.com/ethereum/go-ethereum/crypto/bn256/cloudflare"
+	"github.com/keep-network/keep-core/pkg/altbn128"
 )
 
 func GetBytesFromPoints(g1Points []*bn256.G1, g2Points []*bn256.G2) (data []byte) {
@@ -41,6 +42,15 @@ func GenRandomBytes(size int) (blk []byte) {
 	return
 }
 
+func GenRandomKeys(total int) ([]*big.Int, []*bn256.G2) {
+	privs, pubs := make([]*big.Int, total), make([]*bn256.G2, total)
+	for i := 0; i < total; i++ {
+		privs[i] = new(big.Int).SetBytes(GenRandomBytes(64))
+		pubs[i] = new(bn256.G2).ScalarBaseMult(privs[i])
+	}
+	return privs, pubs
+}
+
 // Sign creates a point on a curve G1 by hashing and signing provided message
 // using the provided secret key.
 func Sign(secretKey *big.Int, message []byte) *bn256.G1 {
@@ -69,4 +79,38 @@ func VerifyG1(publicKey *bn256.G2, message *bn256.G1, signature *bn256.G1) bool 
 	b := []*bn256.G2{p2, publicKey}
 
 	return bn256.PairingCheck(a, b)
+}
+
+func HashToPointMsg(p *bn256.G2, message []byte) *bn256.G1 {
+	var data []byte
+	data = append(data, p.Marshal()...)
+	data = append(data, message...)
+	return altbn128.G1HashToPoint(data)
+}
+
+func HashToPointByte(p *bn256.G2, index byte) *bn256.G1 {
+	data := make([]byte, 32)
+	data[31] = index
+	return HashToPointMsg(p, data)
+}
+
+func SignAggregated(secretKey *big.Int, message []byte, publicKey *bn256.G2, membershipKey *bn256.G1) *bn256.G1 {
+	plainSig := new(bn256.G1).ScalarMult(HashToPointMsg(publicKey, message), secretKey)
+	return new(bn256.G1).Add(plainSig, membershipKey)
+}
+
+func AggregatePointsOnG1(points []*bn256.G1) *bn256.G1 {
+	res := new(bn256.G1).Set(points[0])
+	for i := 1; i < len(points); i++ {
+		res = new(bn256.G1).Add(res, points[i])
+	}
+	return res
+}
+
+func AggregatePointsOnG2(points []*bn256.G2) *bn256.G2 {
+	res := new(bn256.G2).Set(points[0])
+	for i := 1; i < len(points); i++ {
+		res = new(bn256.G2).Add(res, points[i])
+	}
+	return res
 }
