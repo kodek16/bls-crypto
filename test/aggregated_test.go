@@ -114,6 +114,7 @@ func internalTest_KofNVerifyAggregatedInSolidity(t *testing.T, mask int64) {
 	backend.Commit()
 	verifiedSol, err := blsSignatureTest.Verified(&bind.CallOpts{})
 	require.True(t, verifiedSol)
+	require.True(t, VerifyAggregated(aggPub, pub, msg, sig, bitmask))
 }
 
 func TestPrecompiled_KofNVerifyAggregatedInSolidity(t *testing.T) {

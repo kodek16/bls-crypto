@@ -126,3 +126,22 @@ func AggregatePointsOnG2(points []*bn256.G2) *bn256.G2 {
 	}
 	return res
 }
+
+func VerifyAggregated(aggregatedPublicKey *bn256.G2, partPublicKey *bn256.G2, message []byte, partSignature *bn256.G1, bitmask *big.Int) bool {
+	// Generator point of G2 group.
+	g2 := new(bn256.G2).ScalarBaseMult(big.NewInt(1))
+	g1 := new(bn256.G1).ScalarBaseMult(big.NewInt(1))
+
+	sum := new(bn256.G1).Add(g1, new(bn256.G1).Neg(g1))
+	for index := 0; bitmask.Sign() != 0; index++ {
+		if bitmask.Bit(index) != 0 {
+			bitmask = new(big.Int).SetBit(bitmask, index, 0)
+			sum = new(bn256.G1).Add(sum, HashToPointByte(aggregatedPublicKey, byte(index)))
+		}
+	}
+
+	a := []*bn256.G1{new(bn256.G1).Neg(partSignature), HashToPointMsg(aggregatedPublicKey, message), sum}
+	b := []*bn256.G2{g2, partPublicKey, aggregatedPublicKey}
+
+	return bn256.PairingCheck(a, b)
+}
