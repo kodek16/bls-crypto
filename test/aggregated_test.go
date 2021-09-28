@@ -117,6 +117,25 @@ func internalTest_KofNVerifyAggregatedInSolidity(t *testing.T, mask int64) {
 	require.True(t, VerifyAggregated(aggPub, pub, msg, sig, bitmask))
 }
 
+func Test_KofNVerifyAggregatedManual(t *testing.T) {
+	if len(pubs) < 256 {
+		t.Skip("This test needs 256 or more keys. Skipping.")
+	}
+	bitmask := new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil), big.NewInt(1))
+	//log.Println(bitmask.Text(16))
+
+	pub, sig := signAggregatedPartially(bitmask)
+	tx, err := blsSignatureTest.VerifyAggregatedSignature(owner, aggPub.Marshal(), pub.Marshal(), msg, sig.Marshal(), bitmask)
+	require.NoError(t, err)
+	log.Printf("Signers: %d, gas: %d", len(pubs), tx.Gas())
+	backend.Commit()
+	verifiedSol, err := blsSignatureTest.Verified(&bind.CallOpts{})
+	require.True(t, verifiedSol)
+
+	//bitmask = new(big.Int).SetBit(bitmask, 0, 0)
+	require.True(t, VerifyAggregated(aggPub, pub, msg, sig, bitmask))
+}
+
 func TestPrecompiled_KofNVerifyAggregatedInSolidity(t *testing.T) {
 	internalTest_KofNVerifyAggregatedInSolidity(t, 0x7FFFFFFFFFFFFFFF)
 
