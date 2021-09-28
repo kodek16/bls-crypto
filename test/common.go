@@ -1,6 +1,7 @@
 package test
 
 import (
+	"crypto/sha256"
 	"math/big"
 	"math/rand"
 	"time"
@@ -51,12 +52,30 @@ func GenRandomKeys(total int) ([]*big.Int, []*bn256.G2) {
 	return privs, pubs
 }
 
-func AggregateMembershipKeys(privs []*big.Int, pubs []*bn256.G2, aggPub *bn256.G2) []*bn256.G1 {
+func CalculateAntiRogueCoefficients(pubs []*bn256.G2) []*big.Int {
+	as := make([]*big.Int, len(pubs))
+	data := pubs[0].Marshal()
+	for i := 0; i < len(pubs); i++ {
+		data = append(data, pubs[i].Marshal()...)
+	}
+
+	for i := 0; i < len(pubs); i++ {
+		cur := pubs[i].Marshal()
+		copy(data[0:len(cur)], cur)
+		hash := sha256.Sum256(data)
+		as[i] = new(big.Int).SetBytes(hash[:])
+	}
+	return as
+}
+
+func AggregateMembershipKeys(privs []*big.Int, pubs []*bn256.G2, aggPub *bn256.G2, coefs []*big.Int) []*bn256.G1 {
 	res := make([]*bn256.G1, len(pubs))
 	for i := 0; i < len(pubs); i++ {
 		res[i] = new(bn256.G1).ScalarMult(HashToPointByte(aggPub, byte(i)), privs[0])
+		res[i] = new(bn256.G1).ScalarMult(res[i], coefs[0])
 		for j := 1; j < len(pubs); j++ {
 			tmp := new(bn256.G1).ScalarMult(HashToPointByte(aggPub, byte(i)), privs[j])
+			tmp = new(bn256.G1).ScalarMult(tmp, coefs[j])
 			res[i] = new(bn256.G1).Add(res[i], tmp)
 		}
 	}
@@ -111,18 +130,11 @@ func SignAggregated(secretKey *big.Int, message []byte, publicKey *bn256.G2, mem
 	return new(bn256.G1).Add(plainSig, membershipKey)
 }
 
-func AggregatePointsOnG1(points []*bn256.G1) *bn256.G1 {
-	res := new(bn256.G1).Set(points[0])
+func AggregatePointsOnG2(points []*bn256.G2, coefs []*big.Int) *bn256.G2 {
+	res := new(bn256.G2).ScalarMult(points[0], coefs[0])
 	for i := 1; i < len(points); i++ {
-		res = new(bn256.G1).Add(res, points[i])
-	}
-	return res
-}
-
-func AggregatePointsOnG2(points []*bn256.G2) *bn256.G2 {
-	res := new(bn256.G2).Set(points[0])
-	for i := 1; i < len(points); i++ {
-		res = new(bn256.G2).Add(res, points[i])
+		cur := new(bn256.G2).ScalarMult(points[i], coefs[i])
+		res = new(bn256.G2).Add(res, cur)
 	}
 	return res
 }

@@ -15,14 +15,17 @@ import (
 var (
 	msg         = GenRandomBytes(5000)
 	privs, pubs = GenRandomKeys(64)
-	aggPub      = AggregatePointsOnG2(pubs)
-	mks         = AggregateMembershipKeys(privs, pubs, aggPub)
+	as          = CalculateAntiRogueCoefficients(pubs)
+	aggPub      = AggregatePointsOnG2(pubs, as)
+	mks         = AggregateMembershipKeys(privs, pubs, aggPub, as)
 )
 
 func TestPrecompiled_SimpleAggregatedSignatureInSolidity(t *testing.T) {
 	sig := Sign(privs[0], msg)
+	sig = new(bn256.G1).ScalarMult(sig, as[0])
 	for i := 1; i < len(pubs); i++ {
 		sgn := Sign(privs[i], msg)
+		sgn = new(bn256.G1).ScalarMult(sgn, as[i])
 		sig = new(bn256.G1).Add(sig, sgn)
 	}
 	_, err := blsSignatureTest.VerifySignature(owner, aggPub.Marshal(), msg, sig.Marshal())
