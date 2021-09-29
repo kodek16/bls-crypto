@@ -10,32 +10,6 @@ import (
 	"github.com/keep-network/keep-core/pkg/altbn128"
 )
 
-func GetBytesFromPoints(g1Points []*bn256.G1, g2Points []*bn256.G2) (data []byte) {
-	if len(g1Points) != len(g2Points) {
-		panic("input slices have different lengths")
-	}
-	for i, g1 := range g1Points {
-		data = append(data, g1.Marshal()...)
-		data = append(data, g2Points[i].Marshal()...)
-	}
-	return
-}
-
-func PreparePoints(message []byte, publicKey *bn256.G2, signature *bn256.G1) []byte {
-	p2 := new(bn256.G2).ScalarBaseMult(big.NewInt(1))
-	msgPoint := altbn128.G1HashToPoint(message)
-	a := []*bn256.G1{
-		new(bn256.G1).Neg(signature),
-		msgPoint,
-	}
-	b := []*bn256.G2{
-		p2,
-		publicKey,
-	}
-	data := GetBytesFromPoints(a, b)
-	return data
-}
-
 func GenRandomBytes(size int) (blk []byte) {
 	rand.Seed(time.Now().UnixNano())
 	blk = make([]byte, size)

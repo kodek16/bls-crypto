@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	msg         = GenRandomBytes(5000)
+	msg         = GenRandomBytes(100)
 	privs, pubs = GenRandomKeys(64)
 	as          = CalculateAntiRogueCoefficients(pubs)
 	aggPub      = AggregatePointsOnG2(pubs, as)

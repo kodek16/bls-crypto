@@ -15,15 +15,15 @@
 pragma solidity >=0.7.1;
 
 import "./ModUtils.sol";
+
 /**
  * Verify BLS Threshold Signed values.
  *
  * Much of the code in this file is derived from here:
- * https://github.com/kfichter/solidity-bls/blob/master/contracts/BLS.sol
+ * https://github.com/ConsenSys/gpact/blob/main/common/common/src/main/solidity/BlsSignatureVerification.sol
  */
 contract BlsSignatureVerification {
     using ModUtils for uint256;
-    uint8 constant private MAX_ATTEMPTS_AT_HASH_TO_CURVE = 10;
 
     struct E1Point {
         uint x;
@@ -45,7 +45,7 @@ contract BlsSignatureVerification {
      * Checks if a BLS signature is valid.
      *
      * @param _publicKey Public verification key associated with the secret key that signed the message.
-     * @param _message Message that was signed.
+     * @param _message Message that was signed as a bytes array.
      * @param _signature Signature over the message.
      * @return True if the message was correctly signed.
      */
@@ -54,16 +54,18 @@ contract BlsSignatureVerification {
         bytes memory _message,
         E1Point memory _signature
     ) internal view returns (bool) {
-        E1Point[] memory e1points = new E1Point[](2);
-        E2Point[] memory e2points = new E2Point[](2);
-        e1points[0] = negate(_signature);
-        e1points[1] = hashToCurveE1(_message);
-        e2points[0] = G2();
-        e2points[1] = _publicKey;
-        return pairing(e1points, e2points);
+        return verifyForPoint(_publicKey, hashToCurveE1(_message), _signature);
     }
 
-    function verifyPoint(
+    /**
+     * Checks if a BLS signature is valid for a message represented as a curve point.
+     *
+     * @param _publicKey Public verification key associated with the secret key that signed the message.
+     * @param _message Message that was signed as a point on curve E1.
+     * @param _signature Signature over the message.
+     * @return True if the message was correctly signed.
+     */
+    function verifyForPoint(
         E2Point memory _publicKey,
         E1Point memory _message,
         E1Point memory _signature
@@ -78,7 +80,7 @@ contract BlsSignatureVerification {
     }
 
     /**
-     * Checks if a BLS aggregated signature is valid.
+     * Checks if a threshold BLS signature is valid.
      *
      * @param _aggregatedPublicKey Sum of all public keys
      * @param _partPublicKey Sum of participated public keys
@@ -194,22 +196,6 @@ contract BlsSignatureVerification {
         return out[0] != 0;
     }
 
-    function pairingPreparedBytes(bytes memory _input) internal view returns (bool) {
-        uint[1] memory out;
-        bool success;
-
-        assembly {
-        // Start at memory offset 0x20 rather than 0 as input is a variable length array.
-        // Location 0 is the length field.
-            success := staticcall(sub(gas(), 2000), 8, add(_input, 0x20), mul(12, 0x20), out, 0x20)
-        }
-        // The pairing operation will fail if the input data isn't the correct size (this won't happen
-        // given the code above), or if one of the points isn't on the curve.
-        require(success, "Pairing operation failed.");
-        //        require(out[0] != 0, "Pairing should return 1");
-        return out[0] != 0;
-    }
-
     /**
      * Multiplies a point in E1 by a scalar.
      * @param _point E1 point to multiply.
@@ -239,72 +225,6 @@ contract BlsSignatureVerification {
      */
     function isAtInfinity(E1Point memory _point) private pure returns (bool){
         return (_point.x == 0 && _point.y == 0);
-    }
-
-    function bytesFromPoints(E1Point[] memory _e1points, E2Point[] memory _e2points) private view returns (bytes memory) {
-        require(_e1points.length == _e2points.length, "Point count mismatch.");
-
-        uint elements = _e1points.length;
-        uint inputSize = elements * 6;
-        uint[] memory input = new uint[](inputSize);
-
-        for (uint i = 0; i < elements; i++) {
-            input[i * 6 + 0] = _e1points[i].x;
-            input[i * 6 + 1] = _e1points[i].y;
-            input[i * 6 + 2] = _e2points[i].x[0];
-            input[i * 6 + 3] = _e2points[i].x[1];
-            input[i * 6 + 4] = _e2points[i].y[0];
-            input[i * 6 + 5] = _e2points[i].y[1];
-        }
-        return abi.encodePacked(input);
-    }
-
-    function uintsFromPoints(E1Point[] memory _e1points, E2Point[] memory _e2points) internal view returns (uint[] memory) {
-        require(_e1points.length == _e2points.length, "Point count mismatch.");
-
-        uint elements = _e1points.length;
-        uint inputSize = elements * 6;
-        uint[] memory input = new uint[](inputSize);
-
-        for (uint i = 0; i < elements; i++) {
-            input[i * 6 + 0] = _e1points[i].x;
-            input[i * 6 + 1] = _e1points[i].y;
-            input[i * 6 + 2] = _e2points[i].x[0];
-            input[i * 6 + 3] = _e2points[i].x[1];
-            input[i * 6 + 4] = _e2points[i].y[0];
-            input[i * 6 + 5] = _e2points[i].y[1];
-        }
-
-        return input;
-    }
-
-    function getUintsFromParams(
-        E2Point memory _publicKey,
-        bytes memory _message,
-        E1Point memory _signature
-    ) internal view returns (uint[] memory) {
-        E1Point[] memory e1points = new E1Point[](2);
-        E2Point[] memory e2points = new E2Point[](2);
-        e1points[0] = negate(_signature);
-        e1points[1] = hashToCurveE1(_message);
-        e2points[0] = G2();
-        e2points[1] = _publicKey;
-        return uintsFromPoints(e1points, e2points);
-    }
-
-
-    function getBytesFromParams(
-        E2Point memory _publicKey,
-        bytes memory _message,
-        E1Point memory _signature
-    ) internal view returns (bytes memory) {
-        E1Point[] memory e1points = new E1Point[](2);
-        E2Point[] memory e2points = new E2Point[](2);
-        e1points[0] = negate(_signature);
-        e1points[1] = hashToCurveE1(_message);
-        e2points[0] = G2();
-        e2points[1] = _publicKey;
-        return bytesFromPoints(e1points, e2points);
     }
 
     /**
