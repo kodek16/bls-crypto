@@ -12,9 +12,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	MESSAGE_SIZE        = 32
+	PARTICIPANTS_NUMBER = 64
+)
+
 var (
-	msg         = GenRandomBytes(100)
-	privs, pubs = GenRandomKeys(64)
+	msg         = GenRandomBytes(MESSAGE_SIZE)
+	privs, pubs = GenRandomKeys(PARTICIPANTS_NUMBER)
 	as          = CalculateAntiRogueCoefficients(pubs)
 	aggPub      = AggregatePointsOnG2(pubs, as)
 	mks         = AggregateMembershipKeys(privs, pubs, aggPub, as)
@@ -79,22 +84,22 @@ func TestPrecompiled_2of2VerifyAggregatedInSolidity(t *testing.T) {
 	mk21 := new(bn256.G1).ScalarMult(HashToPointByte(p, 0), s2)
 	mk22 := new(bn256.G1).ScalarMult(HashToPointByte(p, 1), s2)
 	mk2 := new(bn256.G1).Add(mk21, mk22)
-	sig1 := SignAggregated(s1, msg, p, mk1)
-	sig2 := SignAggregated(s2, msg, p, mk2)
+	sig1 := SignMultisig(s1, msg, p, mk1)
+	sig2 := SignMultisig(s2, msg, p, mk2)
 	sig := new(bn256.G1).Add(sig1, sig2)
 	bitmask := big.NewInt(3)
 
-	_, err := blsSignatureTest.VerifyAggregatedSignature(owner, p.Marshal(), p.Marshal(), msg, sig.Marshal(), bitmask)
+	_, err := blsSignatureTest.VerifyMultisignature(owner, p.Marshal(), p.Marshal(), msg, sig.Marshal(), bitmask)
 	require.NoError(t, err)
 	backend.Commit()
 	verifiedSol, err := blsSignatureTest.Verified(&bind.CallOpts{})
 	require.True(t, verifiedSol)
 }
 
-func signAggregatedPartially(bitmask *big.Int) (pub *bn256.G2, sig *bn256.G1) {
+func signMultisigPartially(bitmask *big.Int) (pub *bn256.G2, sig *bn256.G1) {
 	for i := 0; i < len(pubs); i++ {
 		if bitmask.Bit(i) != 0 {
-			s := SignAggregated(privs[i], msg, aggPub, mks[i])
+			s := SignMultisig(privs[i], msg, aggPub, mks[i])
 			if sig == nil {
 				sig = s
 				pub = pubs[i]
@@ -107,28 +112,28 @@ func signAggregatedPartially(bitmask *big.Int) (pub *bn256.G2, sig *bn256.G1) {
 	return
 }
 
-func internalTest_KofNVerifyAggregatedInSolidity(t *testing.T, mask int64) {
+func verifyMultisigTest(t *testing.T, mask int64) {
 	// bitmask := new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil), big.NewInt(1))
 	bitmask := big.NewInt(mask)
-	pub, sig := signAggregatedPartially(bitmask)
-	tx, err := blsSignatureTest.VerifyAggregatedSignature(owner, aggPub.Marshal(), pub.Marshal(), msg, sig.Marshal(), bitmask)
+	pub, sig := signMultisigPartially(bitmask)
+	tx, err := blsSignatureTest.VerifyMultisignature(owner, aggPub.Marshal(), pub.Marshal(), msg, sig.Marshal(), bitmask)
 	require.NoError(t, err)
 	log.Printf("Signers: %3d/%d, gas: %d", bits.OnesCount64(uint64(mask)), len(pubs), tx.Gas())
 	backend.Commit()
 	verifiedSol, err := blsSignatureTest.Verified(&bind.CallOpts{})
 	require.True(t, verifiedSol)
-	require.True(t, VerifyAggregated(aggPub, pub, msg, sig, bitmask))
+	require.True(t, VerifyMultisig(aggPub, pub, msg, sig, bitmask))
 }
 
 func Test_KofNVerifyAggregatedManual(t *testing.T) {
 	if len(pubs) < 256 {
-		t.Skip("This test needs 256 or more keys. Skipping.")
+		t.Skip("This test needs 256 or more PARTICIPANTS_NUMBER. Skipping.")
 	}
 	bitmask := new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil), big.NewInt(1))
 	//log.Println(bitmask.Text(16))
 
-	pub, sig := signAggregatedPartially(bitmask)
-	tx, err := blsSignatureTest.VerifyAggregatedSignature(owner, aggPub.Marshal(), pub.Marshal(), msg, sig.Marshal(), bitmask)
+	pub, sig := signMultisigPartially(bitmask)
+	tx, err := blsSignatureTest.VerifyMultisignature(owner, aggPub.Marshal(), pub.Marshal(), msg, sig.Marshal(), bitmask)
 	require.NoError(t, err)
 	log.Printf("Signers: %d, gas: %d", len(pubs), tx.Gas())
 	backend.Commit()
@@ -136,17 +141,40 @@ func Test_KofNVerifyAggregatedManual(t *testing.T) {
 	require.True(t, verifiedSol)
 
 	//bitmask = new(big.Int).SetBit(bitmask, 0, 0)
-	require.True(t, VerifyAggregated(aggPub, pub, msg, sig, bitmask))
+	require.True(t, VerifyMultisig(aggPub, pub, msg, sig, bitmask))
 }
 
-func TestPrecompiled_KofNVerifyAggregatedInSolidity(t *testing.T) {
-	internalTest_KofNVerifyAggregatedInSolidity(t, 0x7FFFFFFFFFFFFFFF)
+func TestPrecompiled_Verify63MultisigInSolidity(t *testing.T) {
+	if len(pubs) < 63 {
+		t.Skip("This test needs 63 or more PARTICIPANTS_NUMBER. Skipping.")
+	}
+	verifyMultisigTest(t, 0x7FFFFFFFFFFFFFFF)
+}
 
-	internalTest_KofNVerifyAggregatedInSolidity(t, 0xFFFFFFFF)
-	internalTest_KofNVerifyAggregatedInSolidity(t, 0xF0F0F0F0)
-	internalTest_KofNVerifyAggregatedInSolidity(t, 0x0F0F0F0F)
-	internalTest_KofNVerifyAggregatedInSolidity(t, 0x11111111)
-	internalTest_KofNVerifyAggregatedInSolidity(t, 0x10101010)
-	internalTest_KofNVerifyAggregatedInSolidity(t, 0x80000001)
-	internalTest_KofNVerifyAggregatedInSolidity(t, 1)
+func TestPrecompiled_Verify32MultisigInSolidity(t *testing.T) {
+	verifyMultisigTest(t, 0xFFFFFFFF)
+}
+
+func TestPrecompiled_Verify17MultisigInSolidity(t *testing.T) {
+	verifyMultisigTest(t, 0xF0F0F0F1)
+}
+
+func TestPrecompiled_Verify16MultisigInSolidity(t *testing.T) {
+	verifyMultisigTest(t, 0x0F0F0F0F)
+}
+
+func TestPrecompiled_Verify8MultisigInSolidity(t *testing.T) {
+	verifyMultisigTest(t, 0x11111111)
+}
+
+func TestPrecompiled_Verify4MultisigInSolidity(t *testing.T) {
+	verifyMultisigTest(t, 0x10101010)
+}
+
+func TestPrecompiled_Verify2MultisigInSolidity(t *testing.T) {
+	verifyMultisigTest(t, 0x80000001)
+}
+
+func TestPrecompiled_Verify1MultisigInSolidity(t *testing.T) {
+	verifyMultisigTest(t, 1)
 }

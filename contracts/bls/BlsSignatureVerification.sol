@@ -1,17 +1,5 @@
-/*
- * Copyright 2020 ConsenSys Software Inc
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- *
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 pragma solidity >=0.7.1;
 
 import "./ModUtils.sol";
@@ -42,7 +30,7 @@ contract BlsSignatureVerification {
     uint256 constant p = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
 
     /**
-     * Checks if a BLS signature is valid.
+     * Checks if BLS signature is valid.
      *
      * @param _publicKey Public verification key associated with the secret key that signed the message.
      * @param _message Message that was signed as a bytes array.
@@ -58,7 +46,7 @@ contract BlsSignatureVerification {
     }
 
     /**
-     * Checks if a BLS signature is valid for a message represented as a curve point.
+     * Checks if BLS signature is valid for a message represented as a curve point.
      *
      * @param _publicKey Public verification key associated with the secret key that signed the message.
      * @param _message Message that was signed as a point on curve E1.
@@ -80,7 +68,7 @@ contract BlsSignatureVerification {
     }
 
     /**
-     * Checks if a threshold BLS signature is valid.
+     * Checks if BLS multisignature is valid.
      *
      * @param _aggregatedPublicKey Sum of all public keys
      * @param _partPublicKey Sum of participated public keys
@@ -89,7 +77,7 @@ contract BlsSignatureVerification {
      * @param _signersBitmask Bitmask of participants in this signature
      * @return True if the message was correctly signed by the given participants.
      */
-    function verifyAggregated(
+    function verifyMultisig(
         E2Point memory _aggregatedPublicKey,
         E2Point memory _partPublicKey,
         bytes memory _message,
@@ -145,19 +133,17 @@ contract BlsSignatureVerification {
 
 
     /**
-     * Negate a point: Assuming the point isn't at infinity, the negatation is same x value with -y.
+     * Negate a point: Assuming the point isn't at infinity, the negation is same x value with -y.
      *
      * @dev Negates a point in E1.
      * @param _point Point to negate.
      * @return The negated point.
      */
     function negate(E1Point memory _point) private pure returns (E1Point memory) {
-        // Field Modulus.
-        uint q = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
         if (isAtInfinity(_point)) {
             return E1Point(0, 0);
         }
-        return E1Point(_point.x, q - (_point.y % q));
+        return E1Point(_point.x, p - (_point.y % p));
     }
 
     /**
@@ -273,7 +259,7 @@ contract BlsSignatureVerification {
         input[3] = _p2.y;
         bool success;
         assembly {
-            success := staticcall(sub(gas(), 2000), 6, input, 0xc0, res, 0x60)
+            success := staticcall(sub(gas(), 2000), 6, input, 0x80, res, 0x40)
         }
         require(success, "Add points failed");
     }
