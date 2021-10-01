@@ -1,5 +1,6 @@
-pragma solidity >=0.7.1;
+// SPDX-License-Identifier: Apache-2.0
 
+pragma solidity >=0.7.1;
 
 library ModUtils {
 

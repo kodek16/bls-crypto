@@ -4,38 +4,32 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
-	"math/big"
 	"go-sol-bls/wrappers"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/crypto"
-	//signer "github.com/ethereum/go-ethereum/signer/core"
 )
 
 var (
-	backend *backends.SimulatedBackend
-	owner *bind.TransactOpts
-	blsSignatureTest *wrappers.BlsSignatureTest
+	backend                  *backends.SimulatedBackend
+	owner                    *bind.TransactOpts
+	blsSignatureTest         *wrappers.BlsSignatureTest
 	blsSignatureVerification *wrappers.BlsSignatureVerification
-	err error
-	ownerKey, signerKey *ecdsa.PrivateKey
+	err                      error
+	ownerKey, signerKey      *ecdsa.PrivateKey
 
-	ctx context.Context
-	Domain map[string]json.RawMessage
-	domainChainIDAsString map[string]json.RawMessage
-	Msg map[string]json.RawMessage
+	ctx                                   context.Context
+	Domain                                map[string]json.RawMessage
+	domainChainIDAsString                 map[string]json.RawMessage
+	Msg                                   map[string]json.RawMessage
 	ownerAddress, blsSignatureTestAddress common.Address
-	createNodeData *createNodeDataTypw
-
-	)
-
-
-
-
-
+	createNodeData                        *createNodeDataTypw
+)
 
 type createNodeDataTypw struct {
 	nodeWallet    common.Address
@@ -67,17 +61,5 @@ func init() {
 		panic(err)
 	}
 
-
 	backend.Commit()
-
-
-
 }
-
-
-
-
-
-
-
-
