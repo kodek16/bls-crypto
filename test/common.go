@@ -1,29 +1,31 @@
 package test
 
 import (
+	crand "crypto/rand"
 	"crypto/sha256"
 	"math/big"
-	"math/rand"
-	"time"
 
 	bn256 "github.com/ethereum/go-ethereum/crypto/bn256/cloudflare"
 	"github.com/keep-network/keep-core/pkg/altbn128"
 )
 
-// GenRandomBytes creates byte array of specified size with random data
 func GenRandomBytes(size int) (blk []byte) {
-	rand.Seed(time.Now().UnixNano())
 	blk = make([]byte, size)
-	_, _ = rand.Read(blk)
+	_, _ = crand.Reader.Read(blk)
 	return
+}
+
+// GenRandomKey creates a random private and its corresponding public keys
+func GenRandomKey() (*big.Int, *bn256.G2) {
+	priv, pub, _ := bn256.RandomG2(crand.Reader)
+	return priv, pub
 }
 
 // GenRandomKeys creates an array of random private and their corresponding public keys
 func GenRandomKeys(total int) ([]*big.Int, []*bn256.G2) {
 	privs, pubs := make([]*big.Int, total), make([]*bn256.G2, total)
 	for i := 0; i < total; i++ {
-		privs[i] = new(big.Int).SetBytes(GenRandomBytes(64))
-		pubs[i] = new(bn256.G2).ScalarBaseMult(privs[i])
+		privs[i], pubs[i] = GenRandomKey()
 	}
 	return privs, pubs
 }

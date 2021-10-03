@@ -73,19 +73,16 @@ func TestPrecompiled_AggregatedHashInSolidity(t *testing.T) {
 }
 
 func TestPrecompiled_2of2VerifyAggregatedInSolidity(t *testing.T) {
-	s1 := new(big.Int).SetBytes(GenRandomBytes(64))
-	p1 := new(bn256.G2).ScalarBaseMult(s1)
-	s2 := new(big.Int).SetBytes(GenRandomBytes(64))
-	p2 := new(bn256.G2).ScalarBaseMult(s2)
-	p := new(bn256.G2).Add(p1, p2)
-	mk11 := new(bn256.G1).ScalarMult(HashToPointByte(p, 0), s1)
-	mk12 := new(bn256.G1).ScalarMult(HashToPointByte(p, 1), s1)
+	sk, pk := GenRandomKeys(2)
+	p := new(bn256.G2).Add(pk[0], pk[1])
+	mk11 := new(bn256.G1).ScalarMult(HashToPointByte(p, 0), sk[0])
+	mk12 := new(bn256.G1).ScalarMult(HashToPointByte(p, 1), sk[0])
 	mk1 := new(bn256.G1).Add(mk11, mk12)
-	mk21 := new(bn256.G1).ScalarMult(HashToPointByte(p, 0), s2)
-	mk22 := new(bn256.G1).ScalarMult(HashToPointByte(p, 1), s2)
+	mk21 := new(bn256.G1).ScalarMult(HashToPointByte(p, 0), sk[1])
+	mk22 := new(bn256.G1).ScalarMult(HashToPointByte(p, 1), sk[1])
 	mk2 := new(bn256.G1).Add(mk21, mk22)
-	sig1 := SignMultisig(s1, msg, p, mk1)
-	sig2 := SignMultisig(s2, msg, p, mk2)
+	sig1 := SignMultisig(sk[0], msg, p, mk1)
+	sig2 := SignMultisig(sk[1], msg, p, mk2)
 	sig := new(bn256.G1).Add(sig1, sig2)
 	bitmask := big.NewInt(3)
 

@@ -2,7 +2,6 @@ package test
 
 import (
 	"bytes"
-	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -11,12 +10,11 @@ import (
 )
 
 var (
-	message   = GenRandomBytes(5000)
-	secretKey = new(big.Int).SetBytes(GenRandomBytes(64))
-	publicKey = new(bn256.G2).ScalarBaseMult(secretKey)
-	signature = Sign(secretKey, message)
-	pubBytes  = publicKey.Marshal()
-	sigBytes  = signature.Marshal()
+	message              = GenRandomBytes(5000)
+	secretKey, publicKey = GenRandomKey()
+	signature            = Sign(secretKey, message)
+	pubBytes             = publicKey.Marshal()
+	sigBytes             = signature.Marshal()
 )
 
 func TestPrecompiled_VerifySignatureInSolidity(t *testing.T) {
@@ -28,10 +26,9 @@ func TestPrecompiled_VerifySignatureInSolidity(t *testing.T) {
 }
 
 func TestPrecompiled_AddInSolidity(t *testing.T) {
-	k1 := new(big.Int).SetBytes(GenRandomBytes(64))
-	p1 := new(bn256.G1).ScalarBaseMult(k1)
-	k2 := new(big.Int).SetBytes(GenRandomBytes(64))
-	p2 := new(bn256.G1).ScalarBaseMult(k2)
+	sk, _ := GenRandomKeys(2)
+	p1 := Sign(sk[0], message)
+	p2 := Sign(sk[1], message)
 	dataBytes, err := blsSignatureTest.AddOnCurveE1(&bind.CallOpts{}, p1.Marshal(), p2.Marshal())
 	require.NoError(t, err)
 	res := new(bn256.G1).Add(p2, p1)
