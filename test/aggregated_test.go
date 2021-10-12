@@ -77,10 +77,8 @@ func signMultisigPartially(bitmask *big.Int) (bls.PublicKey, bls.Signature) {
 	for i := 0; i < len(pubs); i++ {
 		if bitmask.Bit(i) != 0 {
 			s := privs[i].Multisign(msg, aggPub, mks[i])
-			if sig.IsSet() {
-				sig.Aggregate(s)
-				pub.Aggregate(pubs[i])
-			}
+			sig.Aggregate(s)
+			pub.Aggregate(pubs[i])
 		}
 	}
 	return pub, sig

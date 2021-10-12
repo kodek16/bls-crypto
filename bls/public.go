@@ -26,6 +26,9 @@ func (pub PublicKey) Marshal() []byte {
 }
 
 func UnmarshalPublicKey(raw []byte) (PublicKey, error) {
+	if raw == nil || len(raw) == 0 {
+		return PublicKey{}, nil
+	}
 	p := new(bn256.G2)
 	_, err := p.Unmarshal(raw)
 	return PublicKey{p: p}, err

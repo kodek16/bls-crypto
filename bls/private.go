@@ -30,6 +30,13 @@ func (secretKey PrivateKey) Multisign(message []byte, aggPublicKey PublicKey, me
 	return Signature{p: s}
 }
 
+func (secretKey PrivateKey) Marshal() []byte {
+	if secretKey.p == nil {
+		return nil
+	}
+	return []byte(secretKey.p.String())
+}
+
 // UnmarshalBlsPrivateKey reads the private key from the given byte array
 func UnmarshalPrivateKey(data []byte) (PrivateKey, error) {
 	p := new(big.Int)

@@ -1,8 +1,6 @@
 package bls
 
 import (
-	"encoding/hex"
-	"encoding/json"
 	"math/big"
 
 	bn256 "github.com/ethereum/go-ethereum/crypto/bn256/cloudflare"
@@ -16,11 +14,6 @@ type Signature struct {
 // ZeroSignature returns zero signature (point at infinity)
 func ZeroSignature() Signature {
 	return Signature{p: new(bn256.G1).Set(&zeroG1)}
-}
-
-// IsSet checks if the signature has been initialized
-func (signature *Signature) IsSet() bool {
-	return signature.p != nil
 }
 
 // Verify checks the BLS signature of the message against the public key of its signer
@@ -74,25 +67,10 @@ func (signature Signature) Marshal() []byte {
 	return signature.p.Marshal()
 }
 
-func (signature Signature) MarshalJSON() ([]byte, error) {
-	return json.Marshal(hex.EncodeToString(signature.Marshal()))
-}
-
-func (signature *Signature) UnmarshalJSON(data []byte) error {
-	var str string
-	if err := json.Unmarshal(data, &str); err != nil {
-		return err
-	}
-	raw, err := hex.DecodeString(str)
-	if err != nil {
-		return err
-	}
-	sig, err := UnmarshalSignature(raw)
-	*signature = sig
-	return err
-}
-
 func UnmarshalSignature(raw []byte) (Signature, error) {
+	if raw == nil || len(raw) == 0 {
+		return Signature{}, nil
+	}
 	p := new(bn256.G1)
 	_, err := p.Unmarshal(raw)
 	return Signature{p: p}, err
