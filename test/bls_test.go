@@ -1,18 +1,18 @@
 package test
 
 import (
+	"bls-crypto/bls"
 	"bytes"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	bn256 "github.com/ethereum/go-ethereum/crypto/bn256/cloudflare"
 	"github.com/stretchr/testify/require"
 )
 
 var (
 	message              = GenRandomBytes(5000)
-	secretKey, publicKey = GenRandomKey()
-	signature            = Sign(secretKey, message)
+	secretKey, publicKey = bls.GenerateRandomKey()
+	signature            = secretKey.Sign(message)
 	pubBytes             = publicKey.Marshal()
 	sigBytes             = signature.Marshal()
 )
@@ -26,13 +26,13 @@ func TestPrecompiled_VerifySignatureInSolidity(t *testing.T) {
 }
 
 func TestPrecompiled_AddInSolidity(t *testing.T) {
-	sk, _ := GenRandomKeys(2)
-	p1 := Sign(sk[0], message)
-	p2 := Sign(sk[1], message)
+	sk, _ := GenerateRandomKeys(2)
+	p1 := sk[0].Sign(message)
+	p2 := sk[1].Sign(message)
 	dataBytes, err := blsSignatureTest.AddOnCurveE1(&bind.CallOpts{}, p1.Marshal(), p2.Marshal())
 	require.NoError(t, err)
-	res := new(bn256.G1).Add(p2, p1)
-	require.Equal(t, 0, bytes.Compare(dataBytes, res.Marshal()))
+	p2.Aggregate(p1)
+	require.Equal(t, 0, bytes.Compare(dataBytes, p2.Marshal()))
 }
 
 func TestPrecompiled_FailWrongSignatureInSolidity(t *testing.T) {

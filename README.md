@@ -40,6 +40,9 @@ verifies are both in Golang and Solidity using Ethereum precompiled callbacks.
    A Graduate Course in Applied Cryptography.
    Chapter 15: Elliptic curve cryptography and pairings.
    http://toc.cryptobook.us/
+4. EIP-196: Precompiled contracts for addition and scalar multiplication on
+   the elliptic curve alt_bn128 
+   https://eips.ethereum.org/EIPS/eip-196
 
 
 ### Prerequisites to run tests
@@ -50,7 +53,7 @@ verifies are both in Golang and Solidity using Ethereum precompiled callbacks.
 
 3. Install abigen:
 
-        cd go-sol-bls
+        cd bls-crypto
         make dep
         cd $GOPATH/pkg/mod/github.com/ethereum/go-ethereum@*
         make devtools

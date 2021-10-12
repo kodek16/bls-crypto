@@ -1,6 +1,7 @@
 package test
 
 import (
+	"bls-crypto/bls"
 	"bytes"
 	"log"
 	"math/big"
@@ -8,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	bn256 "github.com/ethereum/go-ethereum/crypto/bn256/cloudflare"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,20 +19,18 @@ const (
 
 var (
 	msg         = GenRandomBytes(MESSAGE_SIZE)
-	privs, pubs = GenRandomKeys(PARTICIPANTS_NUMBER)
-	as          = CalculateAntiRogueCoefficients(pubs)
-	aggPub      = AggregatePointsOnG2(pubs, as)
+	privs, pubs = GenerateRandomKeys(PARTICIPANTS_NUMBER)
+	as          = bls.CalculateAntiRogueCoefficients(pubs)
+	aggPub      = bls.AggregatePublicKeys(pubs, as)
 	mks         = AggregateMembershipKeys(privs, pubs, aggPub, as)
 )
 
 func TestPrecompiled_SimpleAggregatedSignatureInSolidity(t *testing.T) {
-	sig := Sign(privs[0], msg)
-	sig = new(bn256.G1).ScalarMult(sig, as[0])
-	for i := 1; i < len(pubs); i++ {
-		sgn := Sign(privs[i], msg)
-		sgn = new(bn256.G1).ScalarMult(sgn, as[i])
-		sig = new(bn256.G1).Add(sig, sgn)
+	sigs := make([]bls.Signature, PARTICIPANTS_NUMBER)
+	for i, priv := range privs {
+		sigs[i] = priv.Sign(msg)
 	}
+	sig := bls.AggregateSignatures(sigs, as)
 	_, err := blsSignatureTest.VerifySignature(owner, aggPub.Marshal(), msg, sig.Marshal())
 	require.NoError(t, err)
 	backend.Commit()
@@ -46,8 +44,8 @@ func TestPrecompiled_SignAsPointInSolidity(t *testing.T) {
 	dat := make([]byte, 32)
 	dat[31] = 42
 	data = append(data, dat...)
-	sig := Sign(privs[0], data)
-	msgPoint := HashToPointByte(pubs[0], 42)
+	sig := privs[0].Sign(data)
+	msgPoint := bls.HashToPointIndex(pubs[0], 42)
 	_, err := blsSignatureTest.VerifySignaturePoint(owner, pubs[0].Marshal(), msgPoint.Marshal(), sig.Marshal())
 	require.NoError(t, err)
 	backend.Commit()
@@ -56,7 +54,7 @@ func TestPrecompiled_SignAsPointInSolidity(t *testing.T) {
 }
 
 func TestPrecompiled_MembershipKeysInSolidity(t *testing.T) {
-	msgPoint := HashToPointByte(aggPub, 0)
+	msgPoint := bls.HashToPointIndex(aggPub, 0)
 	_, err := blsSignatureTest.VerifySignaturePoint(owner, aggPub.Marshal(), msgPoint.Marshal(), mks[0].Marshal())
 	require.NoError(t, err)
 	backend.Commit()
@@ -68,58 +66,40 @@ func TestPrecompiled_AggregatedHashInSolidity(t *testing.T) {
 	index := byte(42)
 	dataBytes, err := blsSignatureTest.VerifyAggregatedHash(&bind.CallOpts{}, aggPub.Marshal(), big.NewInt(int64(index)))
 	require.NoError(t, err)
-	res := HashToPointByte(aggPub, index)
+	res := bls.HashToPointIndex(aggPub, index)
 	require.Equal(t, 0, bytes.Compare(dataBytes, res.Marshal()))
 }
 
-func TestPrecompiled_2of2VerifyAggregatedInSolidity(t *testing.T) {
-	sk, pk := GenRandomKeys(2)
-	p := new(bn256.G2).Add(pk[0], pk[1])
-	mk11 := new(bn256.G1).ScalarMult(HashToPointByte(p, 0), sk[0])
-	mk12 := new(bn256.G1).ScalarMult(HashToPointByte(p, 1), sk[0])
-	mk1 := new(bn256.G1).Add(mk11, mk12)
-	mk21 := new(bn256.G1).ScalarMult(HashToPointByte(p, 0), sk[1])
-	mk22 := new(bn256.G1).ScalarMult(HashToPointByte(p, 1), sk[1])
-	mk2 := new(bn256.G1).Add(mk21, mk22)
-	sig1 := SignMultisig(sk[0], msg, p, mk1)
-	sig2 := SignMultisig(sk[1], msg, p, mk2)
-	sig := new(bn256.G1).Add(sig1, sig2)
-	bitmask := big.NewInt(3)
-
-	_, err := blsSignatureTest.VerifyMultisignature(owner, p.Marshal(), p.Marshal(), msg, sig.Marshal(), bitmask)
-	require.NoError(t, err)
-	backend.Commit()
-	verifiedSol, err := blsSignatureTest.Verified(&bind.CallOpts{})
-	require.True(t, verifiedSol)
-}
-
-func signMultisigPartially(bitmask *big.Int) (pub *bn256.G2, sig *bn256.G1) {
+// signMultisigPartially signs BLS multisignarure by only the specified members
+func signMultisigPartially(bitmask *big.Int) (bls.PublicKey, bls.Signature) {
+	pub := bls.ZeroPublicKey()
+	sig := bls.ZeroSignature()
 	for i := 0; i < len(pubs); i++ {
 		if bitmask.Bit(i) != 0 {
-			s := SignMultisig(privs[i], msg, aggPub, mks[i])
-			if sig == nil {
-				sig = s
-				pub = pubs[i]
-			} else {
-				sig = new(bn256.G1).Add(sig, s)
-				pub = new(bn256.G2).Add(pub, pubs[i])
+			s := privs[i].Multisign(msg, aggPub, mks[i])
+			if sig.IsSet() {
+				sig.Aggregate(s)
+				pub.Aggregate(pubs[i])
 			}
 		}
 	}
-	return
+	return pub, sig
 }
 
 func verifyMultisigTest(t *testing.T, mask int64) {
-	// bitmask := new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil), big.NewInt(1))
 	bitmask := big.NewInt(mask)
 	pub, sig := signMultisigPartially(bitmask)
+
+	// verify in solidity
 	tx, err := blsSignatureTest.VerifyMultisignature(owner, aggPub.Marshal(), pub.Marshal(), msg, sig.Marshal(), bitmask)
 	require.NoError(t, err)
 	log.Printf("Signers: %3d/%d, gas: %d", bits.OnesCount64(uint64(mask)), len(pubs), tx.Gas())
 	backend.Commit()
 	verifiedSol, err := blsSignatureTest.Verified(&bind.CallOpts{})
 	require.True(t, verifiedSol)
-	require.True(t, VerifyMultisig(aggPub, pub, msg, sig, bitmask))
+
+	// verify in golang code as well
+	require.True(t, sig.VerifyMultisig(aggPub, pub, msg, bitmask))
 }
 
 func Test_KofNVerifyAggregatedManual(t *testing.T) {
@@ -138,7 +118,7 @@ func Test_KofNVerifyAggregatedManual(t *testing.T) {
 	require.True(t, verifiedSol)
 
 	//bitmask = new(big.Int).SetBit(bitmask, 0, 0)
-	require.True(t, VerifyMultisig(aggPub, pub, msg, sig, bitmask))
+	require.True(t, sig.VerifyMultisig(aggPub, pub, msg, bitmask))
 }
 
 func TestPrecompiled_Verify63MultisigInSolidity(t *testing.T) {
