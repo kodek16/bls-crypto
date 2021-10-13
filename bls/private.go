@@ -30,6 +30,13 @@ func (secretKey PrivateKey) Multisign(message []byte, aggPublicKey PublicKey, me
 	return Signature{p: s}
 }
 
+// GenerateMembershipKeyPart generates the participant signature to be aggregated into membership key
+func (secretKey PrivateKey) GenerateMembershipKeyPart(index byte, aggPub PublicKey, anticoef big.Int) Signature {
+	res := new(bn256.G1).ScalarMult(hashToPointIndex(aggPub.p, index), secretKey.p)
+	res.ScalarMult(res, &anticoef)
+	return Signature{p: res}
+}
+
 func (secretKey PrivateKey) Marshal() []byte {
 	if secretKey.p == nil {
 		return nil

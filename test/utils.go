@@ -31,7 +31,7 @@ func AggregateMembershipKeys(privs []bls.PrivateKey, pubs []bls.PublicKey, aggPu
 	for i := 0; i < len(pubs); i++ {
 		res[i] = bls.ZeroSignature()
 		for j := 0; j < len(pubs); j++ {
-			res[i].Aggregate(bls.GenerateMembershipKeyPart(privs[j], byte(i), aggPub, coefs[j]))
+			res[i] = res[i].Aggregate(privs[j].GenerateMembershipKeyPart(byte(i), aggPub, coefs[j]))
 		}
 	}
 	return res

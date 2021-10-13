@@ -27,13 +27,6 @@ func CalculateAntiRogueCoefficients(pubs []PublicKey) []big.Int {
 	return as
 }
 
-// GenerateMembershipKeyPart generates the participant signature to be aggregated into membership key
-func GenerateMembershipKeyPart(priv PrivateKey, index byte, aggPub PublicKey, anticoef big.Int) Signature {
-	res := new(bn256.G1).ScalarMult(hashToPointIndex(aggPub.p, index), priv.p)
-	res.ScalarMult(res, &anticoef)
-	return Signature{p: res}
-}
-
 // AggregateSignatures sums the given array of signatures
 func AggregateSignatures(sigs []Signature, anticoefs []big.Int) Signature {
 	p := *new(bn256.G1).Set(&zeroG1)
