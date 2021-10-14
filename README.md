@@ -66,5 +66,5 @@ verifies are both in Golang and Solidity using Ethereum precompiled callbacks.
 Note that there are parameters specified in the
 [aggregated_test.go][test/aggregated_test.go] file that affect the gas usage:
 
-* `MESSAGE_SIZE` - size of the message being signed in bytes,
+* `MESSAGE_SIZE` - size of the message being signed in bytes.
 * `PARTICIPANTS_NUMBER` - total number of participants in a group who sign the message.
