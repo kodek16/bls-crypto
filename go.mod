@@ -1,4 +1,4 @@
-module go-sol-bls
+module bls-crypto
 
 go 1.16
 

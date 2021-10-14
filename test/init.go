@@ -1,10 +1,10 @@
 package test
 
 import (
+	"bls-crypto/wrappers"
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
-	"go-sol-bls/wrappers"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
