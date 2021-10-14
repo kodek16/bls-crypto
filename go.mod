@@ -1,4 +1,4 @@
-module bls-crypto
+module github.com/eywa-protocol/bls-crypto
 
 go 1.16
 

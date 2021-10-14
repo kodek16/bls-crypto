@@ -1,11 +1,11 @@
 package test
 
 import (
-	"bls-crypto/bls"
 	"bytes"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/eywa-protocol/bls-crypto/bls"
 	"github.com/stretchr/testify/require"
 )
 

@@ -1,7 +1,6 @@
 package test
 
 import (
-	"bls-crypto/wrappers"
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
@@ -13,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/eywa-protocol/bls-crypto/wrappers"
 )
 
 var (

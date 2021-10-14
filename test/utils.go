@@ -1,9 +1,10 @@
 package test
 
 import (
-	"bls-crypto/bls"
 	"crypto/rand"
 	"math/big"
+
+	"github.com/eywa-protocol/bls-crypto/bls"
 )
 
 // GenRandomBytes generates byte array with random data

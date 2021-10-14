@@ -1,12 +1,12 @@
 package test
 
 import (
-	"bls-crypto/bls"
 	"bytes"
 	"encoding/json"
 	"math/big"
 	"testing"
 
+	"github.com/eywa-protocol/bls-crypto/bls"
 	"github.com/stretchr/testify/require"
 )
 

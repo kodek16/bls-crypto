@@ -112,7 +112,7 @@ Refer to [multisig_test.go](test/multisig_test.go) for more code.
 ### Test parameters
 
 Note that there are parameters specified in the
-[aggregated_test.go][test/aggregated_test.go] file that affect the gas usage:
+[aggregated_test.go](test/aggregated_test.go) file that affect the gas usage:
 
 * `MESSAGE_SIZE` - size of the message being signed in bytes,
 * `PARTICIPANTS_NUMBER` - total number of participants in a group who sign the message.
