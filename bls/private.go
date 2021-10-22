@@ -1,6 +1,7 @@
 package bls
 
 import (
+	"crypto"
 	"math/big"
 
 	bn256 "github.com/ethereum/go-ethereum/crypto/bn256/cloudflare"
@@ -12,8 +13,8 @@ type PrivateKey struct {
 }
 
 // PublicKey calculates public key corresponding to the given private key
-func (priv PrivateKey) PublicKey() PublicKey {
-	return PublicKey{p: new(bn256.G2).ScalarBaseMult(priv.p)}
+func (priv PrivateKey) Public() crypto.PublicKey {
+	return &PublicKey{p: new(bn256.G2).ScalarBaseMult(priv.p)}
 }
 
 // Sign generates a simple BLS signature of the given message
