@@ -71,7 +71,7 @@ Refer to [multisig_test.go](test/multisig_test.go) for more code.
 
 * https://gist.github.com/BjornvdLaan/ca6dd4e3993e1ef392f363ec27fe74c4
 * https://github.com/ConsenSys/gpact/blob/main/common/common/src/main/solidity/BlsSignatureVerification.sol
-* https://github.com/keep-network/keep-core/blob/main/solidity/contracts/cryptography/AltBn128.sol
+* https://github.com/keep-network/keep-core/blob/v1.3.1/solidity/contracts/cryptography/AltBn128.sol
 
 
 ### References
