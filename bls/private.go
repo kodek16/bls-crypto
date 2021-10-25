@@ -17,6 +17,10 @@ func (priv PrivateKey) Public() crypto.PublicKey {
 	return &PublicKey{p: new(bn256.G2).ScalarBaseMult(priv.p)}
 }
 
+func (priv PrivateKey) PublicKey() PublicKey {
+	return PublicKey{p: new(bn256.G2).ScalarBaseMult(priv.p)}
+}
+
 // Sign generates a simple BLS signature of the given message
 func (secretKey PrivateKey) Sign(message []byte) Signature {
 	hashPoint := altbn128.G1HashToPoint(message)
