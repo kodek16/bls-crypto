@@ -3,6 +3,7 @@ package bls
 import (
 	"encoding/hex"
 	"encoding/json"
+	"math/big"
 )
 
 func (secretKey PrivateKey) MarshalJSON() ([]byte, error) {
@@ -16,6 +17,15 @@ func (secretKey *PrivateKey) UnmarshalJSON(data []byte) error {
 	priv, err := UnmarshalPrivateKey(data)
 	*secretKey = priv
 	return err
+}
+
+func ReadPrivateKey(str string) (PrivateKey, error) {
+	bin, err := hex.DecodeString(str)
+	if err != nil {
+		return PrivateKey{}, err
+	}
+	p := new(big.Int).SetBytes(bin)
+	return PrivateKey{p: p}, err
 }
 
 func (publicKey PublicKey) MarshalJSON() ([]byte, error) {
@@ -40,6 +50,14 @@ func (publicKey *PublicKey) UnmarshalJSON(data []byte) error {
 	return err
 }
 
+func ReadPublicKey(str string) (PublicKey, error) {
+	raw, err := hex.DecodeString(str)
+	if err != nil {
+		return PublicKey{}, err
+	}
+	return UnmarshalPublicKey(raw)
+}
+
 func (signature Signature) MarshalJSON() ([]byte, error) {
 	raw := signature.Marshal()
 	if raw == nil {
@@ -60,4 +78,26 @@ func (signature *Signature) UnmarshalJSON(data []byte) error {
 	sig, err := UnmarshalSignature(raw)
 	*signature = sig
 	return err
+}
+
+func ReadSignature(str string) (Signature, error) {
+	raw, err := hex.DecodeString(str)
+	if err != nil {
+		return Signature{}, err
+	}
+	return UnmarshalSignature(raw)
+}
+
+func MarshalBitmask(mask *big.Int) []byte {
+	if mask == nil {
+		return nil
+	}
+	return mask.Bytes()
+}
+
+func UnmarshalBitmask(data []byte) *big.Int {
+	if data == nil {
+		return nil
+	}
+	return new(big.Int).SetBytes(data)
 }
