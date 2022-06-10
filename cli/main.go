@@ -68,6 +68,7 @@ type Output struct {
   Message string `json:"message"`
   PartSignature string `json:"partSignature"`
   SignersBitmask string `json:"signersBitmask"`
+  NumSigners int `json:"numSigners"`
 }
 
 func main() {
@@ -98,19 +99,22 @@ func main() {
 
   msg         := GenRandomBytes(messageSize)
 
-	var mask int64 = (1 << numSigners) - 1
-	bitmask := big.NewInt(mask)
+  for signers := numSigners; signers <= numParticipants; signers++ {
+    var mask int64 = (1 << signers) - 1
+    bitmask := big.NewInt(mask)
 
-	pub, sig := signMultisigPartially(privs, pubs, mks, aggPub, bitmask, msg)
+    pub, sig := signMultisigPartially(privs, pubs, mks, aggPub, bitmask, msg)
 
-  output := &Output {
-    AggregatedPublicKey: hex.EncodeToString(aggPub.Marshal()),
-    PartPublicKey: hex.EncodeToString(pub.Marshal()),
-    Message: hex.EncodeToString(msg),
-    PartSignature: hex.EncodeToString(sig.Marshal()),
-    SignersBitmask: hex.EncodeToString(bitmask.Bytes()),
+    output := &Output {
+      AggregatedPublicKey: hex.EncodeToString(aggPub.Marshal()),
+      PartPublicKey: hex.EncodeToString(pub.Marshal()),
+      Message: hex.EncodeToString(msg),
+      PartSignature: hex.EncodeToString(sig.Marshal()),
+      SignersBitmask: hex.EncodeToString(bitmask.Bytes()),
+      NumSigners: signers,
+    }
+
+    outputJson, _ := json.Marshal(output)
+    fmt.Println(string(outputJson))
   }
-
-  outputJson, _ := json.Marshal(output)
-  fmt.Println(string(outputJson))
 }
